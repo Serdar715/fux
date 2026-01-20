@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"compress/gzip"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/hex"
@@ -15,7 +16,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -219,7 +219,6 @@ func (e *Engine) StartScan() {
 			results <- result
 
 			// Update stats atomically
-			atomic.AddInt64(&e.successCount, 0) // Just to track progress
 			e.mu.Lock()
 			e.Stats.CompletedCount++
 			if result.Success {
@@ -357,8 +356,17 @@ func (e *Engine) TestPayload(payload config.BypassPayload) config.ScanResult {
 
 	result.RequestTime = time.Since(startTime)
 
-	// Read response body
-	bodyBytes, err := io.ReadAll(resp.Body)
+	// Read response body (handle gzip)
+	var reader io.Reader = resp.Body
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err == nil {
+			defer gzReader.Close()
+			reader = gzReader
+		}
+	}
+
+	bodyBytes, err := io.ReadAll(reader)
 	if err != nil {
 		result.Error = err.Error()
 		result.ErrorReason = "Response read failed"

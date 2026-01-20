@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fux/config"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -95,20 +96,22 @@ func (r *Reporter) ReportResult(result config.ScanResult) {
 		if reason == "" {
 			reason = "Rejected"
 		}
-		// Show snippet of response for debugging
-		responseSnippet := ""
-		if len(result.ResponseBody) > 0 {
-			snippetLen := 100
-			if len(result.ResponseBody) < snippetLen {
-				snippetLen = len(result.ResponseBody)
-			}
-			responseSnippet = result.ResponseBody[:snippetLen]
-		}
 		fmt.Printf("%s[-] %s: %s (%d) - %s%s\n",
 			config.ColorRed, result.Payload.Name, result.Payload.FileName,
 			result.StatusCode, reason, config.ColorReset)
-		if responseSnippet != "" {
-			fmt.Printf("    %sResponse: %.80s...%s\n", config.ColorDim, responseSnippet, config.ColorReset)
+
+		// Show snippet of response for debugging
+		if len(result.ResponseBody) > 0 {
+			snippetLen := 150
+			if len(result.ResponseBody) < snippetLen {
+				snippetLen = len(result.ResponseBody)
+			}
+			snippet := result.ResponseBody[:snippetLen]
+			// Clean up for display
+			snippet = strings.ReplaceAll(snippet, "\n", " ")
+			snippet = strings.ReplaceAll(snippet, "\r", "")
+			snippet = strings.ReplaceAll(snippet, "  ", " ")
+			fmt.Printf("    %sBody: %s%s\n", config.ColorDim, snippet, config.ColorReset)
 		}
 	}
 }
