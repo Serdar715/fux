@@ -32,37 +32,28 @@
 
 ## 📦 Installation
 
-### From Source (Recommended for Kali/Parrot Linux)
+### Quick Install (One-liner for Kali/Parrot/Linux)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/fux.git
-cd fux
+go install github.com/Serdar715/fux@latest
+```
 
-# Build the binary
-go build -o fux .
+Or clone and build:
 
-# Move to PATH (optional)
-sudo mv fux /usr/local/bin/
-
-# Verify installation
-fux -h
+```bash
+git clone https://github.com/Serdar715/fux.git && cd fux && go build -o fux . && sudo mv fux /usr/local/bin/
 ```
 
 ### Prerequisites
 
-- **Go 1.21+** must be installed
+**Go 1.21+** must be installed:
 
 ```bash
 # Install Go on Kali/Parrot/Debian
-sudo apt update
-sudo apt install -y golang
+sudo apt update && sudo apt install -y golang
 
-# Or download latest from https://go.dev/dl/
-wget https://go.dev/dl/go1.21.6.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.21.6.linux-amd64.tar.gz
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-source ~/.bashrc
+# Verify
+go version
 ```
 
 ## 🚀 Usage
@@ -251,16 +242,6 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit pull requests.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing`)
-5. Open a Pull Request
-
-## 📧 Contact
-
-For bugs, feature requests, or questions, please open an issue on GitHub.
 
 ---
 
