@@ -1,0 +1,25 @@
+# Binaries
+fux
+fux.exe
+*.exe
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*.txt
+!request.txt
+
+# Output files
+*.json
+*.log
+
+# Go
+vendor/
