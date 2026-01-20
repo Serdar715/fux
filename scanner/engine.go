@@ -175,6 +175,15 @@ func (e *Engine) GeneratePayloads() []config.BypassPayload {
 		payloads = append(payloads, bypass.PolyglotPayloads()...)
 	}
 
+	// 7. Template Image Injection (if provided)
+	if e.Config.TemplateImage != "" && (onlyCategory == "" || onlyCategory == "template") {
+		templatePayloads := bypass.TemplatePayloads(e.Config.TemplateImage)
+		if len(templatePayloads) > 0 {
+			// Prepend template payloads (high priority)
+			payloads = append(templatePayloads, payloads...)
+		}
+	}
+
 	return payloads
 }
 

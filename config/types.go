@@ -23,6 +23,7 @@ type Config struct {
 	OnlyCategory   string // Only run specific category
 	RandomAgent    bool   // Randomize User-Agent
 	UserAgentFile  string // Path to file containing user agents
+	TemplateImage  string // Path to a real image file to inject PHP into
 	MatchString    string // Custom string to match in response for success detection
 	MatchRegex     string // Custom regex pattern to match in response
 	NotMatchString string // If this string is found, consider it failed (for filtering false positives)

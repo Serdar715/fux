@@ -117,6 +117,10 @@ fux -r request.txt -mr "success" -verify
 # Full featured scan
 fux -r request.txt -mr "uploaded successfully" -nmr "not allowed" \
     -proxy http://127.0.0.1:8080 -t 20 -delay 50 -v -verify -o output.json
+
+# ADVANCED: Template Image Injection (Most effective for bypassing content scanners)
+# Use a real image and inject PHP into its metadata
+fux -r request.txt -mr "success" -template real_image.jpg -category template
 ```
 
 ## ⚙️ Options
@@ -141,8 +145,10 @@ fux -r request.txt -mr "uploaded successfully" -nmr "not allowed" \
 | `-skip-filename` | Skip filename obfuscation payloads |
 | `-skip-content` | Skip content obfuscation payloads |
 | `-skip-polyglot` | Skip polyglot payloads |
+| `-template` | Real image file to inject PHP into (JPEG/GIF/PNG) |
 | `-verify` | Verify uploaded files are accessible |
 | `-random-agent` | Randomize User-Agent |
+| `-ua` | Load User-Agents from file |
 | `-o` | Output file (JSON format) |
 | `-v` | Verbose output |
 
@@ -181,12 +187,22 @@ fux -r request.txt -mr "uploaded successfully" -nmr "not allowed" \
 - Whitespace injection
 - Various PHP functions
 
-### 6. Polyglot Files (15+ payloads)
+### 6. Polyglot Files (20+ payloads)
 - JPEG/PHP polyglot
 - GIF/PHP polyglot
 - PNG/PHP polyglot
 - PDF/PHP polyglot
 - PHAR/JPEG polyglot
+- XMP metadata injection
+- EXIF injection
+
+### 7. Template Image Injection (NEW!)
+**Most effective for bypassing advanced content scanners.** Provide a real image file and FUX will inject obfuscated PHP code into its metadata:
+- JPEG XMP metadata injection
+- JPEG EXIF APP1 injection  
+- GIF comment extension injection
+- PNG tEXt chunk injection
+- Uses obfuscated PHP (short tags, base64, string concat)
 
 ## 📊 Output Example
 

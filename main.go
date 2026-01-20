@@ -46,6 +46,7 @@ func main() {
 	// Misc flags
 	flag.BoolVar(&cfg.RandomAgent, "random-agent", false, "Randomize User-Agent header")
 	flag.StringVar(&cfg.UserAgentFile, "ua", "", "Load User-Agents from file (one per line)")
+	flag.StringVar(&cfg.TemplateImage, "template", "", "Real image file to inject PHP into (JPEG/GIF/PNG)")
 
 	// Custom usage
 	flag.Usage = func() {
