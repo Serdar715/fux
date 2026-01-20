@@ -97,6 +97,14 @@ func (d *Detector) DetectSuccess(resp *http.Response, body string, payload confi
 			"file saved",
 			"saved successfully",
 			"upload succeeded",
+			"file accepted",
+			"upload ok",
+			"success\":true",
+			"\"success\": true",
+			"status\":\"success",
+			"\"status\": \"success",
+			"result\":\"ok",
+			"file received",
 		}
 
 		for _, kw := range successKeywords {

@@ -203,15 +203,7 @@ func BuildMultipartBody(req *config.RawRequest, payload config.BypassPayload) ([
 		}
 	}
 
-	// Add other form fields first (maintain order)
-	for name, value := range req.OtherFields {
-		err := writer.WriteField(name, value)
-		if err != nil {
-			continue
-		}
-	}
-
-	// Create file part with custom headers
+	// Create file part FIRST (important for some servers)
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, req.FileParam, payload.FileName))
 
@@ -223,6 +215,14 @@ func BuildMultipartBody(req *config.RawRequest, payload config.BypassPayload) ([
 	part, err := writer.CreatePart(h)
 	if err == nil {
 		part.Write(payload.Content)
+	}
+
+	// Add other form fields AFTER file (maintain original order)
+	for name, value := range req.OtherFields {
+		err := writer.WriteField(name, value)
+		if err != nil {
+			continue
+		}
 	}
 
 	writer.Close()

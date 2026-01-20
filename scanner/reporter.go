@@ -49,7 +49,7 @@ func (r *Reporter) PrintConfig(cfg *config.Config, req *config.RawRequest) {
 		fmt.Printf("    %sProxy:%s %s\n", config.ColorDim, config.ColorReset, cfg.Proxy)
 	}
 	if cfg.MatchString != "" {
-		fmt.Printf("    %sMatch String:%s %s\n", config.ColorGreen, config.ColorReset, cfg.MatchString)
+		fmt.Printf("    %sMatch String:%s \"%s\"\n", config.ColorGreen, config.ColorReset, cfg.MatchString)
 	}
 	if cfg.MatchRegex != "" {
 		fmt.Printf("    %sMatch Regex:%s %s\n", config.ColorGreen, config.ColorReset, cfg.MatchRegex)
@@ -95,9 +95,21 @@ func (r *Reporter) ReportResult(result config.ScanResult) {
 		if reason == "" {
 			reason = "Rejected"
 		}
+		// Show snippet of response for debugging
+		responseSnippet := ""
+		if len(result.ResponseBody) > 0 {
+			snippetLen := 100
+			if len(result.ResponseBody) < snippetLen {
+				snippetLen = len(result.ResponseBody)
+			}
+			responseSnippet = result.ResponseBody[:snippetLen]
+		}
 		fmt.Printf("%s[-] %s: %s (%d) - %s%s\n",
 			config.ColorRed, result.Payload.Name, result.Payload.FileName,
 			result.StatusCode, reason, config.ColorReset)
+		if responseSnippet != "" {
+			fmt.Printf("    %sResponse: %.80s...%s\n", config.ColorDim, responseSnippet, config.ColorReset)
+		}
 	}
 }
 

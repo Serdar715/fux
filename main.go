@@ -45,6 +45,7 @@ func main() {
 
 	// Misc flags
 	flag.BoolVar(&cfg.RandomAgent, "random-agent", false, "Randomize User-Agent header")
+	flag.StringVar(&cfg.UserAgentFile, "ua", "", "Load User-Agents from file (one per line)")
 
 	// Custom usage
 	flag.Usage = func() {

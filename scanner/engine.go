@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,7 +20,7 @@ import (
 )
 
 // Common User-Agent strings for randomization
-var userAgents = []string{
+var defaultUserAgents = []string{
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
@@ -35,6 +36,7 @@ type Engine struct {
 	Detector     *Detector
 	Reporter     *Reporter
 	Stats        *config.ScanStats
+	UserAgents   []string
 	successCount int64 // Atomic counter for thread safety
 	mu           sync.Mutex
 }
@@ -98,12 +100,35 @@ func NewEngine(cfg *config.Config) (*Engine, error) {
 	}
 
 	engine := &Engine{
-		Config:   cfg,
-		Request:  req,
-		Client:   client,
-		Detector: NewDetector(),
-		Reporter: NewReporter(cfg.Verbose, cfg.OutputFile),
-		Stats:    stats,
+		Config:     cfg,
+		Request:    req,
+		Client:     client,
+		Detector:   NewDetector(),
+		Reporter:   NewReporter(cfg.Verbose, cfg.OutputFile),
+		Stats:      stats,
+		UserAgents: defaultUserAgents,
+	}
+
+	// Load custom User-Agents if specified
+	if cfg.UserAgentFile != "" {
+		content, err := os.ReadFile(cfg.UserAgentFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read User-Agent file: %v", err)
+		}
+
+		var customUA []string
+		lines := strings.Split(string(content), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				customUA = append(customUA, line)
+			}
+		}
+
+		if len(customUA) == 0 {
+			return nil, fmt.Errorf("User-Agent file is empty")
+		}
+		engine.UserAgents = customUA
 	}
 
 	// Set config on detector for custom match string support
@@ -317,8 +342,8 @@ func (e *Engine) TestPayload(payload config.BypassPayload) config.ScanResult {
 	}
 
 	// Randomize User-Agent if configured
-	if e.Config.RandomAgent {
-		httpReq.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
+	if e.Config.RandomAgent && len(e.UserAgents) > 0 {
+		httpReq.Header.Set("User-Agent", e.UserAgents[rand.Intn(len(e.UserAgents))])
 	}
 
 	// Send request
